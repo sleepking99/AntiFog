@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { Member, UnavailableRecord, ViewMode } from '../types';
+import { Member, UnavailableRecord } from '../types';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Props {
   members: Member[];
   records: UnavailableRecord[];
   currentMember: Member | null;
-  mode: ViewMode;
   onDateClick: (date: string) => void;
   selectedDate: string | null;
 }
@@ -15,7 +14,6 @@ export const Calendar: React.FC<Props> = ({
   members,
   records,
   currentMember,
-  mode,
   onDateClick,
 }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -175,48 +173,32 @@ export const Calendar: React.FC<Props> = ({
 
               {/* 하단: 9개 도트 시각화 영역 */}
               <div className="mt-auto pt-1">
-                {mode === 'edit-unavailable' && isMeUnavailable ? (
-                  <div
-                    className="text-[9px] font-bold px-1 py-0.5 rounded text-white text-center truncate"
-                    style={{ backgroundColor: currentMember?.color }}
-                  >
-                    내 불가
-                  </div>
-                ) : mode === 'edit-fog' && isMeFog ? (
-                  <div
-                    className="text-[9px] font-bold px-1 py-0.5 rounded text-center truncate border bg-white"
-                    style={{ borderColor: currentMember?.color, color: currentMember?.color }}
-                  >
-                    내 안개
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-5 gap-0.5 sm:gap-1 place-items-center">
-                    {members.map((member) => {
-                      const rec = recordMap.get(member.id);
-                      if (!rec) return null;
+                <div className="grid grid-cols-5 gap-0.5 sm:gap-1 place-items-center">
+                  {members.map((member) => {
+                    const rec = recordMap.get(member.id);
+                    if (!rec) return null;
 
-                      const isFog = rec.status === 'fog';
+                    const isFog = rec.status === 'fog';
 
-                      return isFog ? (
-                        /* 비어있는 도트 (안개) */
-                        <div
-                          key={member.id}
-                          className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border-2 bg-white shadow-2xs"
-                          style={{ borderColor: member.color }}
-                          title={`${member.name} 안개`}
-                        />
-                      ) : (
-                        /* 꽉 찬 도트 (불가) */
-                        <div
-                          key={member.id}
-                          className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-2xs"
-                          style={{ backgroundColor: member.color }}
-                          title={`${member.name} 불가`}
-                        />
-                      );
-                    })}
-                  </div>
-                )}
+                    return isFog ? (
+                      /* 비어있는 도트 (안개) */
+                      <div
+                        key={member.id}
+                        className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border-2 bg-white shadow-2xs"
+                        style={{ borderColor: member.color }}
+                        title={`${member.name} 안개`}
+                      />
+                    ) : (
+                      /* 꽉 찬 도트 (불가) */
+                      <div
+                        key={member.id}
+                        className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-2xs"
+                        style={{ backgroundColor: member.color }}
+                        title={`${member.name} 불가`}
+                      />
+                    );
+                  })}
+                </div>
               </div>
             </button>
           );

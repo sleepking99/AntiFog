@@ -15,4 +15,4 @@ export interface UnavailableRecord {
   created_at?: string;
 }
 
-export type ViewMode = 'edit-unavailable' | 'edit-fog';
+export type ViewMode = 'all' | 'edit-unavailable' | 'edit-fog';

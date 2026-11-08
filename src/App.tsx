@@ -5,7 +5,6 @@ import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { Calendar } from './components/Calendar';
 import { MemberSelectModal } from './components/MemberSelectModal';
 import { DateDetailModal } from './components/DateDetailModal';
-import { AllStatusModal } from './components/AllStatusModal';
 import { 
   Users, 
   CalendarDays, 
@@ -25,12 +24,11 @@ export default function App() {
   const [records, setRecords] = useState<UnavailableRecord[]>([]);
   const [currentMember, setCurrentMember] = useState<Member | null>(null);
   
-  // 모드: 'edit-unavailable'(아예 불가) vs 'edit-fog'(안개)
-  const [mode, setMode] = useState<ViewMode>('edit-unavailable');
+  // 모드: 'all'(전체 현황) vs 'edit-unavailable'(아예 불가) vs 'edit-fog'(안개)
+  const [mode, setMode] = useState<ViewMode>('all');
   
   // 모달 제어
   const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
-  const [isAllStatusOpen, setIsAllStatusOpen] = useState(false);
   const [selectedDateForDetail, setSelectedDateForDetail] = useState<string | null>(null);
   const [showConfigHelp, setShowConfigHelp] = useState(false);
 
@@ -195,8 +193,13 @@ export default function App() {
     [currentMember, records]
   );
 
-  // 5. 캘린더 날짜 클릭 핸들러 (현재 선택된 모드에 따라 토글)
+  // 5. 캘린더 날짜 클릭 핸들러 (전체 현황 모드면 상세 모달 오픈, 그 외 모드는 토글)
   const handleDateClick = (date: string) => {
+    if (mode === 'all') {
+      setSelectedDateForDetail(date);
+      return;
+    }
+
     if (!currentMember) {
       setIsMemberModalOpen(true);
       return;
@@ -253,15 +256,6 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* 상단 '전체 현황' 버튼 */}
-            <button
-              onClick={() => setIsAllStatusOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 bg-white transition active:scale-95 shadow-2xs text-xs font-bold text-slate-700"
-            >
-              <CalendarCheck className="w-3.5 h-3.5 text-indigo-600" />
-              <span>전체 현황</span>
-            </button>
-
             {/* 현재 로그인 프로필 버튼 */}
             <button
               onClick={() => setIsMemberModalOpen(true)}
@@ -289,6 +283,21 @@ export default function App() {
 
       {/* 메인 컨텐츠 영역 */}
       <main className="w-full max-w-2xl px-4 py-4 flex-1">
+        {/* '전체 현황' 모드 버튼 */}
+        <div className="bg-white p-1.5 rounded-2xl shadow-xs border border-slate-100 mb-2">
+          <button
+            onClick={() => setMode('all')}
+            className={`w-full py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 transition-all ${
+              mode === 'all'
+                ? 'bg-indigo-50 text-indigo-600 shadow-xs border border-indigo-200'
+                : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <CalendarCheck className="w-4 h-4 text-indigo-600" />
+            <span>전체 현황</span>
+          </button>
+        </div>
+
         {/* 모드 선택 토글 바: [ 아예 불가 ] | [ 안개 ] */}
         <div className="bg-white p-1.5 rounded-2xl shadow-xs border border-slate-100 flex items-center justify-between mb-4 gap-1.5">
           <button
@@ -330,10 +339,60 @@ export default function App() {
           members={members}
           records={records}
           currentMember={currentMember}
-          mode={mode}
           onDateClick={handleDateClick}
           selectedDate={selectedDateForDetail}
         />
+
+        {/* 전체 현황 모드일 때 캘린더 하단에 표시되는 멤버별 등록 현황 */}
+        {mode === 'all' && (
+          <div className="mt-4 bg-white rounded-3xl p-4 sm:p-5 shadow-xs border border-slate-100">
+            <h3 className="text-xs sm:text-sm font-bold text-slate-700 flex items-center gap-1.5 mb-3">
+              <Users className="w-4 h-4 text-indigo-600" />
+              <span>멤버별 등록 현황</span>
+            </h3>
+
+            <div className="grid grid-cols-3 gap-2">
+              {members.map((m) => {
+                const memberRecords = records.filter((r) => r.member_id === m.id);
+                const unavailCount = memberRecords.filter(
+                  (r) => (r.status || 'unavailable') === 'unavailable'
+                ).length;
+                const fogCount = memberRecords.filter((r) => r.status === 'fog').length;
+
+                return (
+                  <div
+                    key={m.id}
+                    className="p-2.5 rounded-2xl border border-slate-100 bg-slate-50/70 flex flex-col items-center text-center transition hover:bg-slate-100/60"
+                  >
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shadow-2xs"
+                        style={{ backgroundColor: m.color }}
+                      />
+                      <span className="text-xs font-bold text-slate-800 truncate">
+                        {m.name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[11px] text-slate-500">
+                      <span
+                        className="flex items-center gap-0.5 text-rose-600 font-bold"
+                        title="불가 일수"
+                      >
+                        <XCircle className="w-3 h-3" /> {unavailCount}
+                      </span>
+                      <span
+                        className="flex items-center gap-0.5 text-amber-600 font-bold"
+                        title="안개 일수"
+                      >
+                        <CloudFog className="w-3 h-3" /> {fogCount}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* 하단 푸터 */}
@@ -358,16 +417,6 @@ export default function App() {
         currentMember={currentMember}
         onSetStatus={handleSetStatus}
         onClose={() => setSelectedDateForDetail(null)}
-      />
-
-      <AllStatusModal
-        isOpen={isAllStatusOpen}
-        onClose={() => setIsAllStatusOpen(false)}
-        members={members}
-        records={records}
-        onSelectDate={(date) => {
-          setSelectedDateForDetail(date);
-        }}
       />
 
       {/* Supabase 설정 안내 팝업 */}
