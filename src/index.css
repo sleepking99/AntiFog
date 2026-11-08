@@ -1,0 +1,10 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  /* 모바일 사파리 등에서 당겨서 새로고침 방지 */
+  .overscroll-none {
+    overscroll-behavior: none;
+  }
+}
