@@ -1,12 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
-import confetti from 'canvas-confetti';
 import { DEFAULT_MEMBERS } from './config/members';
 import { Member, UnavailableRecord, ViewMode } from './types';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { Calendar } from './components/Calendar';
 import { MemberSelectModal } from './components/MemberSelectModal';
 import { DateDetailModal } from './components/DateDetailModal';
-import { BestDaysBanner } from './components/BestDaysBanner';
 import { 
   Users, 
   CalendarDays, 
@@ -14,7 +12,6 @@ import {
   XCircle, 
   Radio, 
   Info, 
-  Sparkles,
   HelpCircle
 } from 'lucide-react';
 
@@ -49,7 +46,6 @@ export default function App() {
       setIsMemberModalOpen(true);
     }
 
-    // 데이터베이스 또는 로컬 스토리지에서 기록 불러오기
     loadInitialData();
   }, []);
 
@@ -57,7 +53,7 @@ export default function App() {
     if (isSupabaseConfigured && supabase) {
       try {
         // 멤버 목록 가져오기
-        const { data: memberData } = await supabase.from('members').select('*');
+        const { data: memberData } = await supabase.from('members').select('*').order('id');
         if (memberData && memberData.length > 0) {
           setMembers(memberData);
         }
@@ -188,16 +184,6 @@ export default function App() {
     }
   };
 
-  // 추천 날짜 클릭 시 축하 이펙트 & 상세 오픈
-  const handleSelectBestDate = (date: string) => {
-    confetti({
-      particleCount: 70,
-      spread: 60,
-      origin: { y: 0.6 },
-    });
-    setSelectedDateForDetail(date);
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center">
       {/* 상단 네비게이션 바 */}
@@ -209,7 +195,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-base font-black text-slate-800 leading-tight">
-                9인의 모임 날짜 조율
+                지실 캘린더
               </h1>
               <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
                 {isSupabaseConfigured ? (
@@ -265,7 +251,7 @@ export default function App() {
             }`}
           >
             <XCircle className="w-4 h-4 text-rose-500" />
-            <span>❌ 불가 날짜 선택 모드</span>
+            <span>불가 날짜 선택 모드</span>
           </button>
 
           <button
@@ -277,7 +263,7 @@ export default function App() {
             }`}
           >
             <CheckCircle className="w-4 h-4 text-indigo-500" />
-            <span>👀 전체 현황 보기 모드</span>
+            <span>전체 현황 보기 모드</span>
           </button>
         </div>
 
@@ -286,11 +272,11 @@ export default function App() {
           <span>
             {mode === 'edit-unavailable' ? (
               <span className="font-semibold text-rose-600">
-                👉 달력에서 내가 <b>안 되는 날짜</b>를 탭하면 즉시 등록/해제됩니다.
+                달력에서 내가 안 되는 날짜를 탭하면 즉시 등록/해제됩니다.
               </span>
             ) : (
               <span className="font-semibold text-indigo-600">
-                👉 달력의 날짜를 탭하면 누가 되는지 <b>상세 명단</b>을 봅니다.
+                달력의 날짜를 탭하면 누가 되는지 상세 명단을 확인합니다.
               </span>
             )}
           </span>
@@ -300,13 +286,6 @@ export default function App() {
             </span>
           )}
         </div>
-
-        {/* 1순위 추천 Best Days 배너 */}
-        <BestDaysBanner
-          records={records}
-          totalMembersCount={members.length}
-          onSelectDate={handleSelectBestDate}
-        />
 
         {/* 메인 캘린더 */}
         <Calendar
@@ -352,7 +331,7 @@ export default function App() {
                   />
                   <div className="overflow-hidden">
                     <p className="text-xs font-bold text-slate-800 truncate">
-                      {m.name} {isMe && '★'}
+                      {m.name} {isMe && '(나)'}
                     </p>
                     <p className="text-[10px] text-slate-400">
                       불가 {unavailCount}일
@@ -367,10 +346,7 @@ export default function App() {
 
       {/* 하단 푸터 */}
       <footer className="w-full py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-auto">
-        <p className="flex items-center justify-center gap-1">
-          <span>별도 앱 설치 없이 링크만으로 공유하는 모임 조율기</span>
-          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-        </p>
+        <p>별도 앱 설치 없이 링크만으로 공유하는 모임 조율기</p>
       </footer>
 
       {/* 모달들 */}
@@ -401,18 +377,15 @@ export default function App() {
             </div>
             <div className="text-xs text-slate-600 space-y-2.5 overflow-y-auto pr-1">
               <p>
-                현재는 브라우저 로컬 저장소로 작동하는 <b>데모 모드</b>입니다.
-                9명이 서로 실시간으로 일정을 공유하려면 <b>무료 Supabase</b>를 연결해주시면 됩니다:
+                현재는 브라우저 로컬 저장소로 작동하는 데모 모드입니다.
+                9명이 서로 실시간으로 일정을 공유하려면 무료 Supabase를 연결해주시면 됩니다:
               </p>
               <ol className="list-decimal list-inside space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                <li><b>supabase.com</b> 회원가입 후 무료 프로젝트 1개 생성</li>
-                <li>좌측 <b>SQL Editor</b> 메뉴에 들어가서 프로젝트 루트의 <code className="bg-slate-200 px-1 py-0.5 rounded">supabase/schema.sql</code> 내용 복사-붙여넣기 후 Run 클릭</li>
-                <li><b>Project Settings -&gt; API</b>에서 Project URL과 anon public key 복사</li>
-                <li>프로젝트 루트에 <code className="bg-slate-200 px-1 py-0.5 rounded">.env</code> 파일을 만들고 위 키를 붙여넣기</li>
+                <li>supabase.com 회원가입 후 무료 프로젝트 1개 생성</li>
+                <li>좌측 SQL Editor 메뉴에서 supabase/schema.sql 내용 실행</li>
+                <li>Project Settings -&gt; API에서 Project URL과 anon public key 복사</li>
+                <li>프로젝트 루트에 .env 파일을 만들고 붙여넣기</li>
               </ol>
-              <p className="text-[11px] text-slate-400">
-                GitHub에 커밋 후 Vercel에 배포할 때는 Vercel 프로젝트의 Environment Variables에 이 두 값을 넣어주시면 즉시 배포됩니다.
-              </p>
             </div>
             <button
               onClick={() => setShowConfigHelp(false)}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Member, UnavailableRecord, ViewMode } from '../types';
-import { ChevronLeft, ChevronRight, Crown, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Props {
   members: Member[];
@@ -116,9 +116,6 @@ export const Calendar: React.FC<Props> = ({
             ? unavailableMemberIds.has(currentMember.id)
             : false;
 
-          // 9명 전원 가능 여부
-          const isAllAvailable = members.length > 0 && unavailableCount === 0;
-
           // 요일별 글자색
           const dayOfWeek = (firstDayOfMonth + idx) % 7;
           const isSunday = dayOfWeek === 0;
@@ -129,14 +126,12 @@ export const Calendar: React.FC<Props> = ({
               key={dateStr}
               onClick={() => onDateClick(dateStr)}
               className={`relative aspect-square rounded-2xl p-1.5 flex flex-col justify-between transition-all duration-200 active:scale-95 text-left border ${
-                isAllAvailable
-                  ? 'bg-amber-50/80 border-amber-300 shadow-sm ring-1 ring-amber-200'
-                  : isMeUnavailable
+                isMeUnavailable
                   ? 'bg-rose-50/60 border-rose-200'
                   : 'bg-white border-slate-100 hover:border-slate-300 shadow-2xs'
               } ${isToday ? 'ring-2 ring-indigo-500 font-bold' : ''}`}
             >
-              {/* 상단: 날짜 번호 및 전원 가능 뱃지 */}
+              {/* 상단: 날짜 번호 및 불참 인원수 */}
               <div className="flex items-center justify-between w-full">
                 <span
                   className={`text-xs sm:text-sm font-extrabold ${
@@ -150,15 +145,11 @@ export const Calendar: React.FC<Props> = ({
                   {dayNumber}
                 </span>
 
-                {isAllAvailable ? (
-                  <span className="flex items-center text-amber-500">
-                    <Crown className="w-3.5 h-3.5 fill-amber-400" />
-                  </span>
-                ) : unavailableCount > 0 ? (
+                {unavailableCount > 0 && (
                   <span className="text-[10px] font-bold text-rose-500 px-1 rounded-md bg-rose-100/80">
                     -{unavailableCount}
                   </span>
-                ) : null}
+                )}
               </div>
 
               {/* 하단: 9개 도트 시각화 영역 */}
@@ -174,7 +165,7 @@ export const Calendar: React.FC<Props> = ({
                   <div className="grid grid-cols-5 gap-0.5 sm:gap-1 place-items-center">
                     {members.map((member) => {
                       const isUnavail = unavailableMemberIds.has(member.id);
-                      if (!isUnavail) return null; // 불가능한 멤버의 색상만 도트로 찍기
+                      if (!isUnavail) return null; // 불가능한 멤버의 색상만 도트로 표시
 
                       return (
                         <div
@@ -200,17 +191,12 @@ export const Calendar: React.FC<Props> = ({
 
       {/* 하단 캘린더 안내 범례 */}
       <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-        <div className="flex items-center gap-3">
-          <span className="inline-flex items-center gap-1 font-semibold text-amber-600">
-            <Sparkles className="w-3.5 h-3.5" /> 전원 가능 (골드)
-          </span>
-          <span className="inline-flex items-center gap-1 font-medium text-slate-600">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>
-            컬러 도트 = 해당 인원 불가
-          </span>
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>
+          <span>컬러 도트: 해당 인원 불가</span>
         </div>
         <span className="text-[11px] text-slate-400">
-          날짜를 누르면 상세 현황을 봅니다
+          날짜를 누르면 상세 현황을 확인합니다
         </span>
       </div>
     </div>

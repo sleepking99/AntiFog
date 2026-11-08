@@ -27,9 +27,6 @@ export const MemberSelectModal: React.FC<Props> = ({
             <User className="w-6 h-6" />
           </div>
           <h2 className="text-xl font-bold text-slate-800">본인의 이름을 선택해주세요</h2>
-          <p className="text-xs text-slate-500 mt-1">
-            선택한 이름으로 모임 불가능한 날짜를 등록할 수 있습니다.
-          </p>
         </div>
 
         {/* 9명 3x3 그리드 */}

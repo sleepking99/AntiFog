@@ -94,8 +94,8 @@ export const DateDetailModal: React.FC<Props> = ({
               <span>불가능한 멤버 ({unavailableMembers.length}명)</span>
             </div>
             {unavailableMembers.length === 0 ? (
-              <p className="text-xs text-slate-400 bg-slate-50 p-2.5 rounded-xl text-center">
-                🎉 모든 인원이 참여 가능합니다!
+              <p className="text-xs text-slate-500 bg-slate-50 p-2.5 rounded-xl text-center">
+                모든 인원이 참여 가능합니다.
               </p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
