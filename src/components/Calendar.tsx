@@ -106,15 +106,27 @@ export const Calendar: React.FC<Props> = ({
           const dateStr = formatDateStr(dayNumber);
           const isToday = dateStr === todayStr;
 
-          // 이 날 불가능한 사람 기록들
-          const unavailables = records.filter((r) => r.date === dateStr);
-          const unavailableMemberIds = new Set(unavailables.map((r) => r.member_id));
-          const unavailableCount = unavailableMemberIds.size;
+          // 이 날의 기록들 (불가 or 안개)
+          const dayRecords = records.filter((r) => r.date === dateStr);
+          
+          // 멤버별 가장 최근 상태 매핑
+          const recordMap = new Map<number, UnavailableRecord>();
+          dayRecords.forEach((r) => {
+            recordMap.set(r.member_id, r);
+          });
 
-          // 내가 불가능한지 여부
-          const isMeUnavailable = currentMember
-            ? unavailableMemberIds.has(currentMember.id)
-            : false;
+          const unavailCount = Array.from(recordMap.values()).filter(
+            (r) => (r.status || 'unavailable') === 'unavailable'
+          ).length;
+
+          const fogCount = Array.from(recordMap.values()).filter(
+            (r) => r.status === 'fog'
+          ).length;
+
+          // 현재 로그인한 사용자의 상태
+          const myRecord = currentMember ? recordMap.get(currentMember.id) : undefined;
+          const isMeUnavailable = myRecord && (myRecord.status || 'unavailable') === 'unavailable';
+          const isMeFog = myRecord && myRecord.status === 'fog';
 
           // 요일별 글자색
           const dayOfWeek = (firstDayOfMonth + idx) % 7;
@@ -128,10 +140,12 @@ export const Calendar: React.FC<Props> = ({
               className={`relative aspect-square rounded-2xl p-1.5 flex flex-col justify-between transition-all duration-200 active:scale-95 text-left border ${
                 isMeUnavailable
                   ? 'bg-rose-50/60 border-rose-200'
+                  : isMeFog
+                  ? 'bg-amber-50/50 border-amber-200'
                   : 'bg-white border-slate-100 hover:border-slate-300 shadow-2xs'
               } ${isToday ? 'ring-2 ring-indigo-500 font-bold' : ''}`}
             >
-              {/* 상단: 날짜 번호 및 불참 인원수 */}
+              {/* 상단: 날짜 번호 및 인원수 요약 */}
               <div className="flex items-center justify-between w-full">
                 <span
                   className={`text-xs sm:text-sm font-extrabold ${
@@ -145,11 +159,18 @@ export const Calendar: React.FC<Props> = ({
                   {dayNumber}
                 </span>
 
-                {unavailableCount > 0 && (
-                  <span className="text-[10px] font-bold text-rose-500 px-1 rounded-md bg-rose-100/80">
-                    -{unavailableCount}
-                  </span>
-                )}
+                <div className="flex items-center gap-0.5">
+                  {unavailCount > 0 && (
+                    <span className="text-[10px] font-bold text-rose-500 px-1 rounded-md bg-rose-100/80">
+                      -{unavailCount}
+                    </span>
+                  )}
+                  {fogCount > 0 && (
+                    <span className="text-[10px] font-bold text-amber-600 px-1 rounded-md bg-amber-100/80">
+                      ~{fogCount}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* 하단: 9개 도트 시각화 영역 */}
@@ -161,16 +182,34 @@ export const Calendar: React.FC<Props> = ({
                   >
                     내 불가
                   </div>
+                ) : mode === 'edit-fog' && isMeFog ? (
+                  <div
+                    className="text-[9px] font-bold px-1 py-0.5 rounded text-center truncate border bg-white"
+                    style={{ borderColor: currentMember?.color, color: currentMember?.color }}
+                  >
+                    내 안개
+                  </div>
                 ) : (
                   <div className="grid grid-cols-5 gap-0.5 sm:gap-1 place-items-center">
                     {members.map((member) => {
-                      const isUnavail = unavailableMemberIds.has(member.id);
-                      if (!isUnavail) return null; // 불가능한 멤버의 색상만 도트로 표시
+                      const rec = recordMap.get(member.id);
+                      if (!rec) return null;
 
-                      return (
+                      const isFog = rec.status === 'fog';
+
+                      return isFog ? (
+                        /* 비어있는 도트 (안개) */
                         <div
                           key={member.id}
-                          className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-xs animate-scale-in"
+                          className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full border-2 bg-white shadow-2xs"
+                          style={{ borderColor: member.color }}
+                          title={`${member.name} 안개`}
+                        />
+                      ) : (
+                        /* 꽉 찬 도트 (불가) */
+                        <div
+                          key={member.id}
+                          className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-2xs"
                           style={{ backgroundColor: member.color }}
                           title={`${member.name} 불가`}
                         />
@@ -179,21 +218,22 @@ export const Calendar: React.FC<Props> = ({
                   </div>
                 )}
               </div>
-
-              {/* 오늘 표시 점 */}
-              {isToday && (
-                <div className="absolute bottom-1 right-1 w-1 h-1 rounded-full bg-indigo-600" />
-              )}
             </button>
           );
         })}
       </div>
 
       {/* 하단 캘린더 안내 범례 */}
-      <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>
-          <span>컬러 도트: 해당 인원 불가</span>
+      <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-slate-700 inline-block"></span>
+            <span>꽉 찬 점: 불가</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full border-2 border-slate-700 bg-white inline-block"></span>
+            <span>빈 점: 안개</span>
+          </div>
         </div>
         <span className="text-[11px] text-slate-400">
           날짜를 누르면 상세 현황을 확인합니다

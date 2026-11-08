@@ -1,13 +1,13 @@
 import React from 'react';
-import { Member, UnavailableRecord } from '../types';
-import { Calendar as CalendarIcon, CheckCircle2, XCircle, X } from 'lucide-react';
+import { Member, RecordStatus, UnavailableRecord } from '../types';
+import { Calendar as CalendarIcon, CheckCircle2, XCircle, CloudFog, X } from 'lucide-react';
 
 interface Props {
   date: string | null; // 'YYYY-MM-DD'
   members: Member[];
   records: UnavailableRecord[];
   currentMember: Member | null;
-  onToggleDate: (date: string) => void;
+  onSetStatus: (date: string, status: RecordStatus | null) => void;
   onClose: () => void;
 }
 
@@ -16,22 +16,37 @@ export const DateDetailModal: React.FC<Props> = ({
   members,
   records,
   currentMember,
-  onToggleDate,
+  onSetStatus,
   onClose,
 }) => {
   if (!date) return null;
 
-  // 해당 날짜에 불가능한 사람의 ID 세트
-  const unavailableMemberIds = new Set(
-    records.filter((r) => r.date === date).map((r) => r.member_id)
-  );
+  // 해당 날짜의 기록
+  const dayRecords = records.filter((r) => r.date === date);
+  const recordMap = new Map<number, UnavailableRecord>();
+  dayRecords.forEach((r) => recordMap.set(r.member_id, r));
 
-  const unavailableMembers = members.filter((m) => unavailableMemberIds.has(m.id));
-  const availableMembers = members.filter((m) => !unavailableMemberIds.has(m.id));
+  const unavailableMembers: Member[] = [];
+  const fogMembers: Member[] = [];
+  const availableMembers: Member[] = [];
 
-  const isCurrentMemberUnavailable = currentMember
-    ? unavailableMemberIds.has(currentMember.id)
-    : false;
+  members.forEach((m) => {
+    const rec = recordMap.get(m.id);
+    if (!rec) {
+      availableMembers.push(m);
+    } else if (rec.status === 'fog') {
+      fogMembers.push(m);
+    } else {
+      unavailableMembers.push(m);
+    }
+  });
+
+  const myRecord = currentMember ? recordMap.get(currentMember.id) : undefined;
+  const myCurrentStatus: RecordStatus | 'available' = myRecord
+    ? myRecord.status === 'fog'
+      ? 'fog'
+      : 'unavailable'
+    : 'available';
 
   const [year, month, day] = date.split('-').map(Number);
   const dateObj = new Date(year, month - 1, day);
@@ -57,55 +72,97 @@ export const DateDetailModal: React.FC<Props> = ({
               {month}월 {day}일 ({dayOfWeekStr})
             </h3>
             <p className="text-xs text-slate-500">
-              참여 가능 {availableMembers.length}명 / 불가 {unavailableMembers.length}명
+              가능 {availableMembers.length}명 · 안개 {fogMembers.length}명 · 불가 {unavailableMembers.length}명
             </p>
           </div>
         </div>
 
-        {/* 내 상태 토글 버튼 */}
+        {/* 내 상태 선택 버튼 3단 컨트롤러 */}
         {currentMember && (
-          <button
-            onClick={() => onToggleDate(date)}
-            className={`w-full py-3.5 px-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 mb-4 transition-all active:scale-95 shadow-sm ${
-              isCurrentMemberUnavailable
-                ? 'bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100'
-                : 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
-            }`}
-          >
-            {isCurrentMemberUnavailable ? (
-              <>
-                <XCircle className="w-5 h-5 text-rose-500" />
-                <span>나({currentMember.name}): 현재 <b>불가</b> (가능으로 변경)</span>
-              </>
-            ) : (
-              <>
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                <span>나({currentMember.name}): 현재 <b>가능</b> (불가로 변경)</span>
-              </>
-            )}
-          </button>
+          <div className="mb-4 p-2 bg-slate-50 rounded-2xl border border-slate-200">
+            <div className="text-[11px] font-bold text-slate-500 mb-1.5 px-1">
+              내 일정 설정 ({currentMember.name})
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              <button
+                onClick={() => onSetStatus(date, 'unavailable')}
+                className={`py-2 px-1 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 transition ${
+                  myCurrentStatus === 'unavailable'
+                    ? 'bg-rose-500 text-white shadow-xs'
+                    : 'bg-white text-slate-600 hover:bg-rose-50 hover:text-rose-600'
+                }`}
+              >
+                <XCircle className="w-4 h-4" />
+                <span>불가</span>
+              </button>
+
+              <button
+                onClick={() => onSetStatus(date, 'fog')}
+                className={`py-2 px-1 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 transition ${
+                  myCurrentStatus === 'fog'
+                    ? 'bg-amber-500 text-white shadow-xs'
+                    : 'bg-white text-slate-600 hover:bg-amber-50 hover:text-amber-600'
+                }`}
+              >
+                <CloudFog className="w-4 h-4" />
+                <span>안개</span>
+              </button>
+
+              <button
+                onClick={() => onSetStatus(date, null)}
+                className={`py-2 px-1 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 transition ${
+                  myCurrentStatus === 'available'
+                    ? 'bg-emerald-500 text-white shadow-xs'
+                    : 'bg-white text-slate-600 hover:bg-emerald-50 hover:text-emerald-600'
+                }`}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>가능</span>
+              </button>
+            </div>
+          </div>
         )}
 
-        <div className="space-y-4 overflow-y-auto max-h-60 pr-1">
+        <div className="space-y-3.5 overflow-y-auto max-h-56 pr-1">
           {/* 불가 인원 */}
           <div>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600 mb-2">
-              <XCircle className="w-4 h-4" />
+            <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600 mb-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
               <span>불가능한 멤버 ({unavailableMembers.length}명)</span>
             </div>
             {unavailableMembers.length === 0 ? (
-              <p className="text-xs text-slate-500 bg-slate-50 p-2.5 rounded-xl text-center">
-                모든 인원이 참여 가능합니다.
-              </p>
+              <p className="text-[11px] text-slate-400 pl-4">없음</p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
                 {unavailableMembers.map((m) => (
                   <span
                     key={m.id}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold text-white shadow-xs"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold text-white shadow-2xs"
                     style={{ backgroundColor: m.color }}
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-white/80"></span>
+                    {m.name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 안개 인원 */}
+          <div>
+            <div className="flex items-center gap-1.5 text-xs font-bold text-amber-600 mb-1.5">
+              <span className="w-2.5 h-2.5 rounded-full border-2 border-amber-500 bg-white"></span>
+              <span>안개 (미정) 멤버 ({fogMembers.length}명)</span>
+            </div>
+            {fogMembers.length === 0 ? (
+              <p className="text-[11px] text-slate-400 pl-4">없음</p>
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {fogMembers.map((m) => (
+                  <span
+                    key={m.id}
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border-2 bg-white"
+                    style={{ borderColor: m.color, color: m.color }}
+                  >
                     {m.name}
                   </span>
                 ))}
@@ -115,8 +172,8 @@ export const DateDetailModal: React.FC<Props> = ({
 
           {/* 가능 인원 */}
           <div>
-            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 mb-2">
-              <CheckCircle2 className="w-4 h-4" />
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 mb-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5" />
               <span>가능한 멤버 ({availableMembers.length}명)</span>
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -138,7 +195,7 @@ export const DateDetailModal: React.FC<Props> = ({
 
         <button
           onClick={onClose}
-          className="mt-5 w-full py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-semibold hover:bg-slate-200 transition"
+          className="mt-4 w-full py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-semibold hover:bg-slate-200 transition"
         >
           확인 완료
         </button>
