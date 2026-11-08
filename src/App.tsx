@@ -25,7 +25,7 @@ export default function App() {
   const [records, setRecords] = useState<UnavailableRecord[]>([]);
   const [currentMember, setCurrentMember] = useState<Member | null>(null);
   
-  // 모드: 'edit-unavailable'(불가 날짜 선택) vs 'edit-fog'(안개 선택 모드)
+  // 모드: 'edit-unavailable'(아예 불가) vs 'edit-fog'(안개)
   const [mode, setMode] = useState<ViewMode>('edit-unavailable');
   
   // 모달 제어
@@ -289,7 +289,7 @@ export default function App() {
 
       {/* 메인 컨텐츠 영역 */}
       <main className="w-full max-w-2xl px-4 py-4 flex-1">
-        {/* 모드 선택 토글 바: [ 불가 날짜 선택 ] | [ 안개 선택 모드 ] */}
+        {/* 모드 선택 토글 바: [ 아예 불가 ] | [ 안개 ] */}
         <div className="bg-white p-1.5 rounded-2xl shadow-xs border border-slate-100 flex items-center justify-between mb-4 gap-1.5">
           <button
             onClick={() => setMode('edit-unavailable')}
@@ -300,7 +300,7 @@ export default function App() {
             }`}
           >
             <XCircle className="w-4 h-4 text-rose-500" />
-            <span>불가 날짜 선택</span>
+            <span>아예 불가</span>
           </button>
 
           <button
@@ -312,29 +312,18 @@ export default function App() {
             }`}
           >
             <CloudFog className="w-4 h-4 text-amber-500" />
-            <span>안개 선택 모드</span>
+            <span>안개</span>
           </button>
         </div>
 
-        {/* 현재 모드 안내 문구 */}
-        <div className="mb-3 px-2 flex items-center justify-between text-xs text-slate-500">
-          <span>
-            {mode === 'edit-unavailable' ? (
-              <span className="font-semibold text-rose-600">
-                달력 날짜를 탭하면 나의 <b>불가(꽉 찬 점)</b> 일정이 등록/해제됩니다.
-              </span>
-            ) : (
-              <span className="font-semibold text-amber-600">
-                달력 날짜를 탭하면 나의 <b>안개(빈 점)</b> 일정이 등록/해제됩니다.
-              </span>
-            )}
-          </span>
-          {currentMember && (
+        {/* 현재 로그인 멤버 안내 */}
+        {currentMember && (
+          <div className="mb-2 px-2 flex items-center justify-end text-xs text-slate-500">
             <span className="text-[11px] text-slate-400">
               현재: <b style={{ color: currentMember.color }}>{currentMember.name}</b>
             </span>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* 메인 캘린더 */}
         <Calendar
@@ -348,8 +337,9 @@ export default function App() {
       </main>
 
       {/* 하단 푸터 */}
-      <footer className="w-full py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-auto">
-        <p>별도 앱 설치 없이 링크만으로 공유하는 모임 조율기</p>
+      <footer className="w-full py-6 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-auto leading-relaxed">
+        <p>Copyright © 2026 지실</p>
+        <p>모든 저작권은 지실에 있음. 무단 배포시 알아서 하셈.</p>
       </footer>
 
       {/* 모달들 */}
